@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="/img/tether.svg"/>
+    <title>USDT支付网关</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark')
+        }
+    </script>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            .dark\:bg-gray-900 { background-color: #1a1a1a !important; }
+            .dark\:text-white { color: #ffffff !important; }
+            .dark\:bg-gray-800 { background-color: #2d2d2d !important; }
+            .dark\:border-gray-700 { border-color: #404040 !important; }
+        }
+    </style>
+</head>
+<body class="flex justify-center bg-gray-200 dark:bg-[#121212] p-5 font-sans">
+    <div class="w-full max-w-2xl bg-gray-50 dark:bg-gray-900 rounded-3xl p-8 shadow-sm">
+        <!-- Header -->
+        <div class="flex items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-2">
+                <img src="/img/tether.svg" alt="USDT Logo" class="w-8 h-8">
+                <span class="font-bold text-lg dark:text-white">bepusdt</span>
+            </div>
+            <nav class="flex gap-4">
+                <a href="https://github.com/v03413/bepusdt" target="_blank" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">GitHub</a>
+            </nav>
+        </div>
+
+        <!-- Hero Section -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold mb-4 dark:text-white">简单易用的USDT支付解决方案</h1>
+            <p class="text-gray-600 dark:text-gray-400">支持TRC20网络，快速接入，安全可靠</p>
+        </div>
+
+        <!-- Features Section -->
+        <div class="grid md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
+                <i data-feather="zap" class="w-8 h-8 text-blue-500 mb-4"></i>
+                <h3 class="font-bold mb-2 dark:text-white">快速集成</h3>
+                <p class="text-gray-600 dark:text-gray-400 text-sm">简单API，快速对接，支持异步通知</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
+                <i data-feather="shield" class="w-8 h-8 text-green-500 mb-4"></i>
+                <h3 class="font-bold mb-2 dark:text-white">安全可靠</h3>
+                <p class="text-gray-600 dark:text-gray-400 text-sm">开源代码，安全透明，无需托管资金</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
+                <i data-feather="smartphone" class="w-8 h-8 text-purple-500 mb-4"></i>
+                <h3 class="font-bold mb-2 dark:text-white">移动适配</h3>
+                <p class="text-gray-600 dark:text-gray-400 text-sm">完美支持移动端，支持扫码支付</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 pt-8 border-t dark:border-gray-700">
+            <div class="text-gray-600 dark:text-gray-400 mb-4">开源项目</div>
+            <div class="flex justify-center gap-4">
+                <a href="https://github.com/v03413/bepusdt" target="_blank" class="p-2 rounded-full bg-black text-white hover:bg-gray-900">
+                    <i data-feather="github" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // 初始化 Feather 图标
+            feather.replace();
+        });
+    </script>
+</body>
+</html> 

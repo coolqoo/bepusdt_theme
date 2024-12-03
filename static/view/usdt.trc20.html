@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="/img/tether.svg"/>
+    <title>USDT支付网关</title>
+    <!-- Add Tailwind CSS and Feather Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        // 检查系统主题
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark')
+        }
+    </script>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            .dark\:bg-gray-900 { background-color: #1a1a1a !important; }
+            .dark\:text-white { color: #ffffff !important; }
+            .dark\:bg-gray-800 { background-color: #2d2d2d !important; }
+            .dark\:border-gray-700 { border-color: #404040 !important; }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: auto;
+            padding: 20px;
+            border-radius: 16px;
+            max-width: 90%;
+            width: 320px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .modal.dark .modal-content {
+            background-color: #2d2d2d;
+        }
+
+        .close {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            cursor: pointer;
+        }
+
+        /* 修改 Modal 样式 */
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 100%;
+                height: 100%;
+                max-width: 100%;
+                border-radius: 0;
+                transform: none;
+                top: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body class="flex justify-center bg-gray-200 dark:bg-[#121212] p-5 font-sans">
+    <div class="w-full max-w-2xl bg-gray-50 dark:bg-gray-900 rounded-3xl p-8 shadow-sm">
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-8">
+            <div class="flex items-center gap-2">
+                <span class="font-bold text-lg dark:text-white">向{{.http_host}}支付</span>
+            </div>
+        </div>
+
+        <!-- Amount Section -->
+        <div class="mb-8">
+            <div class="flex items-center gap-2 text-3xl font-bold mb-1 dark:text-white">
+                <div class="parse-action cursor-pointer flex items-center" data-clipboard-text="{{.amount}}">
+                    <span class="mr-3">{{.amount}} USDT</span>
+                    <i data-feather="copy" class="w-4 h-4 text-gray-600 dark:text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Info -->
+        <div class="text-gray-800 dark:text-gray-200 mb-4">
+            <div class="mb-1">网络 · Tron (TRC20)</div>
+            <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <i data-feather="info" class="w-4 h-4 mr-1"></i>
+                您需要支付网络手续费
+            </div>
+        </div>
+
+        <!-- QR Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+            <div class="mb-6">
+                <!-- 通用的地址显示组件 -->
+                <template id="address-display">
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">请付款至以下地址</div>
+                    <div class="text-sm break-all bg-gray-100 dark:bg-gray-900 p-3 rounded-lg flex items-center justify-between mb-3">
+                        <span class="parse-action mr-2 dark:text-gray-200 address-text" data-clipboard-text="{{.address}}">{{.address}}</span>
+                        <div class="flex-shrink-0 flex gap-2">
+                            <slot name="extra-buttons"></slot>
+                            <button class="copy-action-btn p-1" data-clipboard-text="{{.address}}">
+                                <i data-feather="copy" class="w-4 h-4 text-gray-600 dark:text-gray-400"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        转账金额必须为显示金额且需要在有效期内完成，否则系统无法确认！
+                    </div>
+                </template>
+
+                <!-- 桌面端显示 -->
+                <div class="hidden md:flex items-start gap-6">
+                    <div id="qrcode" class="flex-none w-[100px]"></div>
+                    <div class="flex-1">
+                        <div id="desktop-address"></div>
+                    </div>
+                </div>
+
+                <!-- 手机端显示 -->
+                <div class="md:hidden">
+                    <div id="mobile-address"></div>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="grid grid-cols-2 gap-4 border-t dark:border-gray-700 pt-4">
+                <div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">过期时间</div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 border-2 border-green-500 rounded-full border-t-transparent animate-spin"></div>
+                        <span class="text-green-500" id="countdown"></span>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">支付状态</div>
+                    <div class="flex items-center gap-2">
+                        <div id="status-spinner" class="w-4 h-4 border-2 border-green-500 rounded-full border-t-transparent animate-spin"></div>
+                        <span class="text-green-500" id="payment-status">等待支付</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8">
+            <div class="text-gray-600 mb-4">如遇问题，请联系客服</div>
+            <div class="flex justify-center gap-4">
+                <a href="https://t.me/usd_fan_group" target="_blank" class="p-2 rounded-full bg-black text-white hover:bg-gray-900">
+                    <i data-feather="send" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加 QR Modal -->
+    <div id="qrModal" class="modal">
+        <div class="modal-content">
+            <i data-feather="x" class="close w-6 h-6 text-gray-600 dark:text-gray-400"></i>
+            <div class="text-center">
+                <div class="text-lg font-bold mb-4 dark:text-white">扫描二维码支付</div>
+                <div id="modalQrcode" class="mb-4"></div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">
+                    请使用支持 TRC20 的钱包扫码支付
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // 添加 showStatus 函数定义
+            function showStatus({ icon, title, message, type }) {
+                // 停止加载动画
+                $('#status-spinner').hide();
+                
+                // 更新支付状态文本和样式
+                const $status = $('#payment-status');
+                $status.html(title);
+                
+                if (type === 'success') {
+                    $status.removeClass('text-red-500').addClass('text-green-500');
+                } else if (type === 'error') {
+                    $status.removeClass('text-green-500').addClass('text-red-500');
+                }
+            }
+
+            // 克隆模板并初始化桌面版和移动版地址显示
+            const $template = $('#address-display');
+            
+            // 桌面版
+            const $desktopAddress = $template.contents().clone();
+            $('#desktop-address').append($desktopAddress);
+            
+            // 移动版
+            const $mobileAddress = $template.contents().clone();
+            const $mobileQRButton = $('<button>', {
+                id: 'showQRCode',
+                class: 'p-1',
+                html: '<i data-feather="grid" class="w-4 h-4 text-gray-600 dark:text-gray-400"></i>'
+            });
+            
+            // 将QR按钮添加到移动版的extra-buttons插槽
+            $mobileAddress.find('.flex-shrink-0').prepend($mobileQRButton);
+            
+            // 为移动版添加地址截断样式
+            $mobileAddress.find('.address-text')
+                .addClass('truncate overflow-hidden')
+                .css('max-width', 'calc(100% - 70px)');
+            
+            $('#mobile-address').append($mobileAddress);
+            
+            // 重新初始化 Feather 图标
+            feather.replace();
+
+            // 处理复制功能
+            function initializeCopyFeature() {
+                $('.parse-action, .copy-action-btn').off('click').on('click', async function(e) {
+                    if ($(e.target).closest('#showQRCode').length) return;
+                    e.preventDefault();
+                    
+                    const $target = $(this);
+                    const textToCopy = $target.data('clipboard-text');
+                    if (!textToCopy) return;
+
+                    try {
+                        await navigator.clipboard.writeText(textToCopy);
+                        
+                        // 保存原始图标的父元素
+                        const $iconParent = $target.find('svg').length ? 
+                            $target.find('svg').parent() : 
+                            $target.children('i[data-feather="copy"]').parent();
+                        
+                        // 修改后的图标切换逻辑
+                        const toggleIcon = (type) => {
+                            const $newIcon = $('<i>', {
+                                'data-feather': type,
+                                class: `w-4 h-4 text-gray-600 dark:text-gray-400 ${type === 'check' ? 'text-green-500 dark:text-green-500' : ''}`
+                            });
+                            $iconParent.find('i, svg').replaceWith($newIcon);
+                            feather.replace();
+                        };
+
+                        toggleIcon('check');
+                        setTimeout(() => toggleIcon('copy'), 2000);
+                    } catch (err) {
+                        console.error('复制失败:', err);
+                    }
+                });
+            }
+
+            // 初始化复制功能
+            initializeCopyFeature();
+
+            // QR Modal 处理
+            const $modal = $('#qrModal');
+            const $showQRBtn = $('#showQRCode');
+            const $closeBtn = $modal.find('.close');
+            
+            $showQRBtn.on('click', function() {
+                $modal.show();
+                if ($('html').hasClass('dark')) {
+                    $modal.addClass('dark');
+                }
+            });
+
+            $closeBtn.on('click', function() {
+                $modal.hide();
+            });
+
+            $(window).on('click', function(event) {
+                if ($(event.target).is($modal)) {
+                    $modal.hide();
+                }
+            });
+
+            // 生成二维码函数
+            function generateQR(text) {
+                const typeNumber = 0;
+                const errorCorrectionLevel = 'L';
+                const qr = qrcode(typeNumber, errorCorrectionLevel);
+                qr.addData(text);
+                qr.make();
+                const qrImage = qr.createImgTag(6, 0);
+                $('#qrcode').html(qrImage).find('img').addClass('mx-auto');
+            }
+
+            // 设置过期时间（从后端传入）
+            let expire = {{.expire}}; // 或 {{.expire}}
+
+            // 倒计时功能
+            function startCountdown() {
+                const endTime = Date.now() + (expire * 1000);
+
+                function updateClock() {
+                    const now = Date.now();
+                    const timeLeft = Math.max(0, Math.floor((endTime - now) / 1000));
+
+                    if (timeLeft <= 0) {
+                        showStatus({
+                            icon: '<i data-feather="x-circle" class="w-16 h-16 text-red-500"></i>',
+                            title: '支付超时',
+                            message: '订单已超时，请重新发起支付',
+                            type: 'error'
+                        });
+                        return;
+                    }
+
+                    const hours = Math.floor(timeLeft / 3600);
+                    const minutes = Math.floor((timeLeft % 3600) / 60);
+                    const seconds = timeLeft % 60;
+
+                    $('#countdown').text(
+                        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+                    );
+
+                    requestAnimationFrame(updateClock);
+                }
+
+                updateClock();
+            }
+
+            // 检查支付状态
+            function checkPaymentStatus() {
+                $.get('/pay/check-status/{{.trade_id}}')
+                    .done(function(data) {
+                        switch(data.status) {
+                            case 1: // 等待支付
+                                setTimeout(checkPaymentStatus, 5000);
+                                break;
+                            case 2: // 支付成功
+                                showStatus({
+                                    icon: '<i data-feather="check-circle" class="w-16 h-16 text-green-500"></i>',
+                                    title: '支付成功',
+                                    message: '正在跳转到商家页面...',
+                                    type: 'success'
+                                });
+                                setTimeout(() => {
+                                    window.location.href = data.return_url;
+                                }, 2000);
+                                break;
+                            case 3: // 支付超时
+                                showStatus({
+                                    icon: '<i data-feather="x-circle" class="w-16 h-16 text-red-500"></i>',
+                                    title: '支付超时',
+                                    message: '订单已超时，请重新发起支付',
+                                    type: 'error'
+                                });
+                                break;
+                        }
+                    })
+                    .fail(function(error) {
+                        console.error('Error:', error);
+                        setTimeout(checkPaymentStatus, 5000);  // 失败时继续轮询
+                    });
+            }
+
+            // 生成两个二维码
+            const address = '{{.address}}';
+            
+            // 页面上的二维码
+            generateQR(address);
+            
+            // Modal中的二维码
+            const modalQr = qrcode(0, 'L');
+            modalQr.addData(address);
+            modalQr.make();
+            const modalQrImage = modalQr.createImgTag(8, 0); // 更大的二维码
+            $('#modalQrcode').html(modalQrImage).find('img').addClass('mx-auto');
+
+            // 初始化功能
+            startCountdown();
+            setTimeout(checkPaymentStatus, 2000);
+        });
+    </script>
+</body>
+</html>
