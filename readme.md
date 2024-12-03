@@ -1,4 +1,4 @@
-# BEPUSDT 前端模板
+# BEPUSDT 仿cryptomus前端模板
 
 这是一个适用于 [BEPUSDT](https://github.com/v03413/bepusdt) 的现代化支付界面模板，提供了美观的支付页面和响应式设计。
 
